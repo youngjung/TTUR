@@ -1,3 +1,16 @@
+# Difference from the [original source](https://github.com/bioinf-jku/TTUR)
+- fixed a [compatibility issue](https://github.com/bioinf-jku/TTUR/issues/6)
+- add `tqdm` to show progress
+- added per-class evaluation (fid_perclass.py, precalc_stats_perclass.py)
+  - usage
+    - assume `[root_dataset]` and `[root_samples]` have same directories of classnames and the directories have images (jpg or png)
+      - e.g., Both have `airplane`, `automobile`, etc.
+    - `python precalc_stats_perclass.py --root_dataset [root_dataset] --dir_dest [somepath]`
+    - `python fid_perclass.py --dir_stats [somepath] --root_samples [root_samples]`
+
+Below is README.md from the [original source](https://github.com/bioinf-jku/TTUR)
+
+
 # Two time-scale update rule for training GANs
 
 This repository contains code accompanying the paper [GANs Trained by a Two Time-Scale Update Rule
