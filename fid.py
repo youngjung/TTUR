@@ -20,6 +20,7 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 import os
 import gzip, pickle
+from tqdm import tqdm
 import tensorflow as tf
 from scipy.misc import imread
 from scipy import linalg
@@ -59,7 +60,8 @@ def _get_inception_layer(sess):
                   new_shape.append(None)
                 else:
                   new_shape.append(s)
-              o.__dict__['_shape_val'] = tf.TensorShape(new_shape)
+              o._shape = tf.TensorShape(new_shape)
+              # o.__dict__['_shape_val'] = tf.TensorShape(new_shape)
     return pool3
 #-------------------------------------------------------------------------------
 
@@ -87,7 +89,7 @@ def get_activations(images, sess, batch_size=50, verbose=False):
     n_batches = d0//batch_size
     n_used_imgs = n_batches*batch_size
     pred_arr = np.empty((n_used_imgs,2048))
-    for i in range(n_batches):
+    for i in tqdm(range(n_batches)):
         if verbose:
             print("\rPropagating batch %d/%d" % (i+1, n_batches), end="", flush=True)
         start = i*batch_size
@@ -106,7 +108,7 @@ def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
     The Frechet distance between two multivariate Gaussians X_1 ~ N(mu_1, C_1)
     and X_2 ~ N(mu_2, C_2) is
             d^2 = ||mu_1 - mu_2||^2 + Tr(C_1 + C_2 - 2*sqrt(C_1*C_2)).
-            
+
     Stable version by Dougal J. Sutherland.
 
     Params:
@@ -176,7 +178,7 @@ def calculate_activation_statistics(images, sess, batch_size=50, verbose=False):
     mu = np.mean(act, axis=0)
     sigma = np.cov(act, rowvar=False)
     return mu, sigma
-    
+
 
 #------------------
 # The following methods are implemented to obtain a batched version of the activations.
@@ -228,7 +230,7 @@ def get_activations_from_files(files, sess, batch_size=50, verbose=False):
     if verbose:
         print(" done")
     return pred_arr
-    
+
 def calculate_activation_statistics_from_files(files, sess, batch_size=50, verbose=False):
     """Calculation of the statistics used by the FID.
     Params:
@@ -248,7 +250,7 @@ def calculate_activation_statistics_from_files(files, sess, batch_size=50, verbo
     mu = np.mean(act, axis=0)
     sigma = np.cov(act, rowvar=False)
     return mu, sigma
-    
+
 #-------------------------------------------------------------------------------
 
 
