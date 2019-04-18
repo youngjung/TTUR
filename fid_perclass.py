@@ -50,6 +50,9 @@ def perclass_fid_between_dataset_and_samples(dir_stats, root_samples):
             fids.append(fid_value)
             print(classname, fid_value)
 
+    print()
+    for classname, fid_value in zip(classnames, fids):
+        print(classname, fid_value)
     fids = np.array(fids)
     print('fid: {} +_ {}'.format(fids.mean(), fids.std()))
 
