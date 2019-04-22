@@ -338,15 +338,17 @@ if __name__ == "__main__":
         else:
             dir = os.path.dirname(path)
         fname_out = os.path.join(dir, 'fid.txt')
-    assert fname_out is not None
+    if not ref_is_npz:  # ensure not to write on ref directory
+        print('cannot decide fname_out: reference is also a directory')
+    if fname_out is None:
+        print('cannot decide fname_out: both paths are not directory')
 
     # core
     fid_value = calculate_fid_given_paths(args.path, args.inception, low_profile=args.lowprofile)
     print("FID: ", fid_value)
 
-    if ref_is_npz:  # ensure not to write on ref directory
+    if fname_out is None or not ref_is_npz:
+        print('fid is not written to a file')
+    else:
         f_out = open(fname_out, 'w')
         f_out.write('{}'.format(fid_value))
-    else:
-        f_out = None
-        print('fid is not written to a file because reference is also a directory')
