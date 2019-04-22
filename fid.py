@@ -19,14 +19,13 @@ See --help to see further details.
 from __future__ import absolute_import, division, print_function
 import numpy as np
 import os
-import gzip, pickle
 from tqdm import tqdm
 import tensorflow as tf
 from scipy.misc import imread
 from scipy import linalg
 import pathlib
-import urllib
 import warnings
+
 
 class InvalidFIDException(Exception):
     pass
@@ -35,11 +34,11 @@ class InvalidFIDException(Exception):
 def create_inception_graph(pth):
     """Creates a graph from saved GraphDef file."""
     # Creates graph from saved graph_def.pb.
-    with tf.gfile.FastGFile( pth, 'rb') as f:
+    with tf.gfile.FastGFile(pth, 'rb') as f:
         graph_def = tf.GraphDef()
-        graph_def.ParseFromString( f.read())
-        _ = tf.import_graph_def( graph_def, name='FID_Inception_Net')
-#-------------------------------------------------------------------------------
+        graph_def.ParseFromString(f.read())
+        _ = tf.import_graph_def(graph_def, name='FID_Inception_Net')
+# -------------------------------------------------------------------------------
 
 
 # code for handling inception net derived from
@@ -53,20 +52,20 @@ def _get_inception_layer(sess):
         for o in op.outputs:
             shape = o.get_shape()
             if shape._dims != []:
-              shape = [s.value for s in shape]
-              new_shape = []
-              for j, s in enumerate(shape):
-                if s == 1 and j == 0:
-                  new_shape.append(None)
-                else:
-                  new_shape.append(s)
-              o._shape = tf.TensorShape(new_shape)
-              # o.__dict__['_shape_val'] = tf.TensorShape(new_shape)
+                shape = [s.value for s in shape]
+                new_shape = []
+                for j, s in enumerate(shape):
+                    if s == 1 and j == 0:
+                        new_shape.append(None)
+                    else:
+                        new_shape.append(s)
+                o._shape = tf.TensorShape(new_shape)
+                # o.__dict__['_shape_val'] = tf.TensorShape(new_shape)
     return pool3
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 
 
-def get_activations(images, sess, batch_size=50, verbose=False):
+def get_activations(images, sess, batch_size=100, verbose=False):
     """Calculates the activations of the pool_3 layer for all images.
 
     Params:
@@ -88,7 +87,7 @@ def get_activations(images, sess, batch_size=50, verbose=False):
         batch_size = d0
     n_batches = d0//batch_size
     n_used_imgs = n_batches*batch_size
-    pred_arr = np.empty((n_used_imgs,2048))
+    pred_arr = np.empty((n_used_imgs, 2048))
     for i in tqdm(range(n_batches)):
         if verbose:
             print("\rPropagating batch %d/%d" % (i+1, n_batches), end="", flush=True)
@@ -96,11 +95,11 @@ def get_activations(images, sess, batch_size=50, verbose=False):
         end = start + batch_size
         batch = images[start:end]
         pred = sess.run(inception_layer, {'FID_Inception_Net/ExpandDims:0': batch})
-        pred_arr[start:end] = pred.reshape(batch_size,-1)
+        pred_arr[start:end] = pred.reshape(batch_size, -1)
     if verbose:
         print(" done")
     return pred_arr
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 
 
 def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
@@ -155,10 +154,10 @@ def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
     tr_covmean = np.trace(covmean)
 
     return diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 
 
-def calculate_activation_statistics(images, sess, batch_size=50, verbose=False):
+def calculate_activation_statistics(images, sess, batch_size=100, verbose=False):
     """Calculation of the statistics used by the FID.
     Params:
     -- images      : Numpy array of dimension (n_images, hi, wi, 3). The values
@@ -180,11 +179,11 @@ def calculate_activation_statistics(images, sess, batch_size=50, verbose=False):
     return mu, sigma
 
 
-#------------------
+# ------------------
 # The following methods are implemented to obtain a batched version of the activations.
 # This has the advantage to reduce memory requirements, at the cost of slightly reduced efficiency.
 # - Pyrestone
-#------------------
+# ------------------
 
 
 def load_image_batch(files):
@@ -195,6 +194,7 @@ def load_image_batch(files):
     -- A numpy array of dimensions (num_images,hi, wi, 3) representing the image pixel values.
     """
     return np.array([imread(str(fn)).astype(np.float32) for fn in files])
+
 
 def get_activations_from_files(files, sess, batch_size=50, verbose=False):
     """Calculates the activations of the pool_3 layer for all images.
@@ -217,7 +217,7 @@ def get_activations_from_files(files, sess, batch_size=50, verbose=False):
         batch_size = d0
     n_batches = d0//batch_size
     n_used_imgs = n_batches*batch_size
-    pred_arr = np.empty((n_used_imgs,2048))
+    pred_arr = np.empty((n_used_imgs, 2048))
     for i in range(n_batches):
         if verbose:
             print("\rPropagating batch %d/%d" % (i+1, n_batches), end="", flush=True)
@@ -225,11 +225,12 @@ def get_activations_from_files(files, sess, batch_size=50, verbose=False):
         end = start + batch_size
         batch = load_image_batch(files[start:end])
         pred = sess.run(inception_layer, {'FID_Inception_Net/ExpandDims:0': batch})
-        pred_arr[start:end] = pred.reshape(batch_size,-1)
-        del batch #clean up memory
+        pred_arr[start:end] = pred.reshape(batch_size, -1)
+        del batch  # clean up memory
     if verbose:
         print(" done")
     return pred_arr
+
 
 def calculate_activation_statistics_from_files(files, sess, batch_size=50, verbose=False):
     """Calculation of the statistics used by the FID.
@@ -251,14 +252,14 @@ def calculate_activation_statistics_from_files(files, sess, batch_size=50, verbo
     sigma = np.cov(act, rowvar=False)
     return mu, sigma
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 
 
-#-------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # The following functions aren't needed for calculating the FID
 # they're just here to make this module work as a stand-alone script
 # for calculating FID scores
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 def check_or_download_inception(inception_path):
     ''' Checks if the path to the inception file is valid, or downloads
         the file if it is not present. '''
@@ -290,7 +291,7 @@ def _handle_path(path, sess, low_profile=False):
         else:
             x = np.array([imread(str(fn)).astype(np.float32) for fn in files])
             m, s = calculate_activation_statistics(x, sess)
-            del x #clean up memory
+            del x  # clean up memory
     return m, s
 
 
@@ -315,14 +316,37 @@ if __name__ == "__main__":
     from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument("path", type=str, nargs=2,
-        help='Path to the generated images or to .npz statistic files')
+                        help='Path to the generated images or to .npz statistic files')
     parser.add_argument("-i", "--inception", type=str, default=None,
-        help='Path to Inception model (will be downloaded if not provided)')
-    parser.add_argument("--gpu", default="", type=str,
-        help='GPU to use (leave blank for CPU only)')
+                        help='Path to Inception model (will be downloaded if not provided)')
+    parser.add_argument("--gpu", default="0", type=str,
+                        help='GPU to use (leave blank for CPU only)')
     parser.add_argument("--lowprofile", action="store_true",
-        help='Keep only one batch of images in memory at a time. This reduces memory footprint, but may decrease speed slightly.')
+                        help='Keep only one batch of images in memory at a time. This reduces memory footprint, but may decrease speed slightly.')
     args = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+
+    # prepare output file
+    fname_out = None
+    ref_is_npz = False
+    for path in args.path:
+        if path.endswith('npz'):
+            ref_is_npz = True
+            continue
+        if path.endswith('/'):
+            dir = os.path.dirname(path[:-1])
+        else:
+            dir = os.path.dirname(path)
+        fname_out = os.path.join(dir, 'fid.txt')
+    assert fname_out is not None
+
+    # core
     fid_value = calculate_fid_given_paths(args.path, args.inception, low_profile=args.lowprofile)
     print("FID: ", fid_value)
+
+    if ref_is_npz:  # ensure not to write on ref directory
+        f_out = open(fname_out, 'w')
+        f_out.write('{}'.format(fid_value))
+    else:
+        f_out = None
+        print('fid is not written to a file because reference is also a directory')
